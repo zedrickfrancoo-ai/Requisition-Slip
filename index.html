@@ -29,7 +29,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px 6px;border-bottom:1p
 <div id="app"></div><div id="msg"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-const SB_URL="https://ivhbamfcggonijziakwd.supabase.co", SB_KEY="paste-your-key-here";
+const SB_URL="https://ivhbamfcggonijziakwd.supabase.co", SB_KEY="sb_publishable_48T7fUhU3km5unBoTmZ_Gg_Fb86RpMy";
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=v=>Number(v||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2});
