@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stores Requisition</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><meta name="theme-color" content="#0f4c6b">
+<style>
+:root{--brown:#6b5444;--brown2:#85705f;--navy:#0f4c6b;--glass:rgba(255,255,255,.8);--line:rgba(107,84,68,.2);--ok:#2e7d5b;--bad:#b3402f;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,Segoe UI,sans-serif;color:#2b2420;min-height:100vh;background:linear-gradient(160deg,#0f4c6b,#1b7f8c 55%,#cfe6ea);background-attachment:fixed}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(15,76,107,.88);backdrop-filter:blur(10px);color:#fff;position:sticky;top:0;z-index:5}
+header img{width:40px;height:40px;border-radius:10px}header span{margin-left:auto;font-size:13px}
+nav{display:flex;gap:6px;padding:10px 16px;overflow-x:auto}
+nav button{border:0;border-radius:999px;padding:8px 16px;background:rgba(255,255,255,.25);color:#fff;font-weight:600;cursor:pointer;white-space:nowrap}nav button.on{background:#fff;color:var(--brown)}
+main{max-width:1000px;margin:0 auto;padding:6px 16px 40px}
+.card{background:var(--glass);backdrop-filter:blur(8px);border:1px solid #fff8;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+h2{margin:0 0 10px;color:var(--brown)}
+label{display:block;font-weight:600;font-size:13px;color:var(--brown);margin-top:10px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff;margin:4px 0}
+button.b{border:0;border-radius:10px;padding:9px 16px;background:var(--brown);color:#fff;font-weight:600;cursor:pointer}button.b:hover{background:var(--brown2)}
+button.g{background:var(--ok)}button.r{background:var(--bad)}button.o{background:#fff;color:var(--brown);border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse}td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--brown);font-size:13px}
+.tbl{overflow-x:auto}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1;min-width:130px}.row>button{flex:0 0 auto}
+.tag{display:inline-block;padding:2px 10px;border-radius:999px;background:#e9e2dc;color:var(--brown);font-size:12px;font-weight:700}
+.tag.Approved,.tag.Closed{background:#d8efe4;color:var(--ok)}.tag.Rejected,.tag.Cancelled{background:#f6dcd7;color:var(--bad)}.tag.Released{background:#d5e9f0;color:var(--navy)}
+.muted{color:#6d625b;font-size:13px}
+.lg{display:grid;grid-template-columns:1fr 1fr;max-width:900px;margin:7vh auto;border-radius:24px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.lg-b{padding:40px;background:linear-gradient(160deg,#0f4c6b,#1b7f8c);color:#fff;display:flex;flex-direction:column;min-height:400px}
+.lg-b img{width:130px;border-radius:28px;background:#fff;margin-bottom:auto}.lg-b h2{color:#fff;font-size:30px;line-height:1.15;margin:24px 0 8px}.lg-b p{margin:0;opacity:.9}
+.lg-f{padding:40px;background:#fffffff2;display:flex;flex-direction:column;justify-content:center}
+@media(max-width:780px){.lg{grid-template-columns:1fr;margin:3vh 12px}.lg-b{min-height:230px;padding:26px}.lg-f{padding:26px}}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}.ov .card{max-width:400px;width:100%}
+#msg{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--brown);color:#fff;padding:10px 18px;border-radius:12px;display:none;z-index:30}
+</style></head><body>
+<div id="app"></div><div id="modal"></div><div id="msg"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ===== SHARED DATABASE (Firebase Firestore) =====
+   Paste your Firebase web-app settings below, exactly like in E-Gate Pass. */
+const FB={apiKey:"AIzaSyC241VT08pS7DYQBz1fW10foCvsEByXqL4",authDomain:"rsnpitf.firebaseapp.com",projectId:"rsnpitf",storageBucket:"rsnpitf.firebasestorage.app",messagingSenderId:"145450433572",appId:"1:145450433572:web:486f42ebc6bb864922ecb1"};
+if(!FB.apiKey){document.getElementById("app").innerHTML='<div class="card" style="max-width:440px;margin:10vh auto"><h2>Setup needed</h2><p>Paste your Firebase settings into the FB line of index.html (see the guide).</p></div>';throw new Error("Firebase settings missing")}
+firebase.initializeApp(FB);const DB=firebase.firestore(),REF=DB.collection("stores").doc("main"),IC=DB.collection("stores_items");
+const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=v=>Number(v||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const toast=t=>{const m=$("#msg");m.textContent=t;m.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display="none",3500)};
+let D,U=null,ITEMS=[],IDX={},view="catalog",cart=[],q="",found=[];
+try{cart=JSON.parse(localStorage.getItem("cart")||"[]")}catch(e){}
+const saveCart=()=>{try{localStorage.setItem("cart",JSON.stringify(cart))}catch(e){}};
+const CODES=[{"s":"Engineering - M&I and E&A","k":"cc","c":"643819001","l":""},{"s":"Engineering - M&I and E&A","k":"gl","c":"5046000","l":"Operating Supplies"},{"s":"Engineering - M&I and E&A","k":"gl","c":"5034020","l":"PPE"},{"s":"Engineering - IS","k":"cc","c":"643817501","l":"Water"},{"s":"Engineering - IS","k":"cc","c":"643817601","l":"Waste Water Treatment"},{"s":"Engineering - IS","k":"cc","c":"643817101","l":"Steam"},{"s":"Engineering - IS","k":"cc","c":"643817201","l":"Refrigeration"},{"s":"Engineering - IS","k":"cc","c":"643817701","l":"Compressed Air"},{"s":"Engineering - IS","k":"gl","c":"5046000","l":"Operating Supplies"},{"s":"Engineering - IS","k":"gl","c":"5034020","l":"PPE"},{"s":"Engineering - Project","k":"cc","c":"643846001","l":""},{"s":"Engineering - Project","k":"gl","c":"5046000","l":"Operating Supplies"},{"s":"Engineering - Project","k":"gl","c":"5034020","l":"PPE"},{"s":"Production - Tower 1","k":"cc","c":"643850199","l":"T1 - Process Common"},{"s":"Production - Tower 1","k":"cc","c":"643851199","l":"T1 - F/P Common"},{"s":"Production - Tower 1","k":"gl","c":"5046000","l":"Operating Supplies"},{"s":"Production - Tower 1","k":"gl","c":"5034020","l":"PPE"},{"s":"Production - RTD","k":"cc","c":"643871199","l":"RTD - Process Common"},{"s":"Production - RTD","k":"cc","c":"643871099","l":"RTD - F/P Common"},{"s":"Production - RTD","k":"gl","c":"5046000","l":"Operating Supplies"},{"s":"QA","k":"cc","c":"643821199","l":""},{"s":"QA","k":"gl","c":"5046000","l":"Operating Supplies"},{"s":"QA","k":"gl","c":"5034020","l":"PPE"},{"s":"QA","k":"gl","c":"5046010","l":"Laboratory Materials"},{"s":"FSC","k":"cc","c":"643816401","l":""},{"s":"FSC","k":"gl","c":"5046000","l":"Operating Supplies"},{"s":"FSC","k":"gl","c":"5034020","l":"PPE"},{"s":"SHE","k":"cc","c":"643830111","l":""},{"s":"SHE","k":"gl","c":"6028000","l":""}];
+const seed=()=>({cfg:{domain:"demo.local",seq:0},codes:CODES,reqs:[],users:["admin","approver","storekeeper","requester"].map(r=>({email:r+"@demo.local",name:"Demo "+r[0].toUpperCase()+r.slice(1),role:r,dept:"Stores",active:true}))});
+async function loadD(){const s=await REF.get();if(s.exists)D=s.data();else{D=seed();await REF.set(D)}}
+async function mut(fn){await loadD();const r=await fn();await REF.set(D);return r}
+
+/* ---------- passwords ---------- */
+const en=new TextEncoder(),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join(""),newSalt=()=>hex(crypto.getRandomValues(new Uint8Array(12)));
+async function hashPw(p,s){const k=await crypto.subtle.importKey("raw",en.encode(p),"PBKDF2",false,["deriveBits"]);return hex(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:en.encode(s),iterations:100000},k,256))}
+const pwOk=p=>p.length>=8&&/[A-Za-z]/.test(p)&&/\d/.test(p),pwMsg="Password needs at least 8 characters, with letters and numbers.";
+
+/* ---------- login (same flow as E-Gate Pass) ---------- */
+function loginView(){
+  $("#app").innerHTML=`<div class="lg"><div class="lg-b"><img src="icon-192.png" alt=""><h2>Every requisition, approved and on record.</h2><p>Request, approve, release and track store items in one place.</p></div>
+  <div class="lg-f"><h2>Sign in</h2><label>Company email<input id="em" type="email" autocomplete="username" placeholder="name@${esc(D?D.cfg.domain:"company.com")}"></label>
+  <label>Password<input id="pw" type="password" autocomplete="current-password"></label><div class="row" style="margin-top:12px"><button class="b" onclick="doLogin()">Sign in</button></div>
+  <p class="muted" style="margin-top:20px">Use your company email and your personal password. First time? Sign in with your email and you will be asked to create a password.</p></div></div>`;
+  $("#pw").addEventListener("keydown",e=>{if(e.key=="Enter")doLogin()});
+}
+async function doLogin(){
+  await loadD();const em=$("#em").value.trim().toLowerCase(),pw=$("#pw").value,d=D.users.find(x=>x.email==em);
+  if(!em.endsWith("@"+D.cfg.domain))return toast("Use your company email (@"+D.cfg.domain+")");
+  if(!d||!d.active)return toast("Incorrect email or password.");
+  if(d.lu&&d.lu>Date.now())return toast("Too many wrong attempts. Try again in "+Math.ceil((d.lu-Date.now())/6e4)+" min.");
+  if(!d.pw)return pwModal(em,"Create your password","This account has no password yet. "+pwMsg);
+  if(await hashPw(pw,d.pw.s)!=d.pw.h){await mut(()=>{const u=D.users.find(x=>x.email==em);u.fl=(u.fl||0)+1;if(u.fl>=5){u.lu=Date.now()+3e5;u.fl=0}});return toast("Incorrect email or password.")}
+  if(d.must)return pwModal(em,"Choose a new password","You signed in with a temporary password. "+pwMsg);
+  finish(em);
+}
+function pwModal(em,t,n){$("#modal").innerHTML=`<div class="ov"><div class="card"><h2>${t}</h2><p class="muted">${n}</p><label>New password<input id="p1" type="password" autocomplete="new-password"></label><label>Confirm password<input id="p2" type="password" autocomplete="new-password"></label>
+  <div class="row" style="margin-top:12px"><button class="b" onclick="savePw('${esc(em)}')">Save and sign in</button><button class="b o" onclick="$('#modal').innerHTML=''">Cancel</button></div></div></div>`}
+async function savePw(em){const a=$("#p1").value;if(!pwOk(a))return toast(pwMsg);if(a!=$("#p2").value)return toast("The two passwords do not match.");
+  const s=newSalt(),h=await hashPw(a,s);await mut(()=>{const u=D.users.find(x=>x.email==em);u.pw={s,h};u.must=false;u.fl=0});$("#modal").innerHTML="";finish(em);toast("Password saved.")}
+function finish(em){U=D.users.find(x=>x.email==em);try{sessionStorage.setItem("st_u",em)}catch(e){}view="catalog";shell()}
+function logout(){U=null;try{sessionStorage.removeItem("st_u")}catch(e){}loginView()}
+
+/* ---------- shell ---------- */
+const TABS={catalog:"Catalog",requests:"Requests",stock:"Stock",users:"Users"};
+const canTab=t=>t=="stock"?["storekeeper","admin"].includes(U.role):t=="users"?U.role=="admin":true;
+async function shell(){
+  $("#app").innerHTML=`<header><img src="icon-192.png" alt=""><b>Stores Requisition</b><span>${esc(U.name)} · ${U.role}</span><button class="b o" onclick="logout()">Sign out</button></header>
+  <nav>${Object.keys(TABS).filter(canTab).map(t=>`<button class="${t==view?"on":""}" onclick="go('${t}')">${TABS[t]}${t=="catalog"&&cart.length?" ("+cart.length+")":""}</button>`).join("")}</nav><main id="main">Loading…</main>`;
+  await loadD();({catalog:catalogV,requests:requestsV,stock:stockV,users:usersV})[view]();
+}
+const go=v=>{view=v;shell()};
+
+/* ---------- items (stored in chunks of 400 so the database stays fast) ---------- */
+async function loadItems(force){if(ITEMS.length&&!force)return;const s=await IC.get();ITEMS=[];IDX={};
+  s.docs.forEach(d=>JSON.parse(d.data().j).forEach(r=>{IDX[r[0]]=+d.id.slice(1);ITEMS.push({m:r[0],d:r[1],u:r[2],s:r[3],p:r[4]})}))}
+
+/* ---------- catalog ---------- */
+async function catalogV(){
+  await loadItems();const secs=[...new Set(D.codes.map(c=>c.s))];
+  $("#main").innerHTML=`<div class="card"><h2>Find items</h2><div class="row"><input id="q" placeholder="Search by description or material no." value="${esc(q)}" onkeydown="if(event.key=='Enter')search()"><button class="b" onclick="search()">Search</button></div><div id="res" class="tbl"></div></div>
+  <div class="card"><h2>My cart</h2><div id="cart" class="tbl"></div><div id="co" style="${cart.length?"":"display:none"}"><div class="row"><select id="sec" onchange="fillCodes()"><option value="">Section…</option>${secs.map(s=>`<option>${esc(s)}</option>`).join("")}</select><select id="cc"></select><select id="gl"></select></div>
+  <textarea id="rem" placeholder="Remarks / purpose" rows="2"></textarea><button class="b g" onclick="checkout()">Submit requisition</button></div></div>`;showCart();search();
+}
+function fillCodes(){const s=$("#sec").value,f=k=>D.codes.filter(c=>c.s==s&&c.k==k).map(c=>`<option value="${esc(c.c)}">${esc(c.c)} ${esc(c.l)}</option>`).join("");$("#cc").innerHTML="<option value=''>Cost center…</option>"+f("cc");$("#gl").innerHTML="<option value=''>GL account…</option>"+f("gl")}
+function search(){q=$("#q").value.trim();const t=q.toLowerCase();found=ITEMS.filter(i=>!t||(i.d+" "+i.m).toLowerCase().includes(t)).slice(0,40);
+  $("#res").innerHTML=`<table><tr><th>Material</th><th>Description</th><th>Stock</th><th></th></tr>${found.map((i,n)=>`<tr><td>${esc(i.m)}</td><td>${esc(i.d)}</td><td>${i.s} ${esc(i.u)}</td><td><button class="b" ${i.s>0?"":"disabled"} onclick="add(${n})">Add</button></td></tr>`).join("")||"<tr><td>No items. Ask the admin to import stock.</td></tr>"}</table>`}
+function add(n){const i=found[n],c=cart.find(x=>x.m==i.m);c?c.q++:cart.push({m:i.m,d:i.d,u:i.u,p:i.p,s:i.s,q:1});saveCart();showCart();$("#co").style.display="";toast("Added")}
+function showCart(){$("#cart").innerHTML=cart.length?`<table><tr><th>Item</th><th>Qty</th><th></th></tr>${cart.map((c,n)=>`<tr><td>${esc(c.d)}<div class="muted">${esc(c.m)}</div></td><td><input type="number" min="1" max="${c.s}" value="${c.q}" style="width:80px" onchange="cart[${n}].q=Math.max(1,+this.value||1);saveCart()"> ${esc(c.u)}</td><td><button class="b r" onclick="cart.splice(${n},1);saveCart();showCart();$('#co').style.display=cart.length?'':'none'">✕</button></td></tr>`).join("")}</table>`:"<span class='muted'>Cart is empty.</span>"}
+async function checkout(){const section=$("#sec").value,cc=$("#cc").value,gl=$("#gl").value;if(!section||!cc||!gl)return toast("Choose section, cost center and GL account");
+  const over=cart.find(c=>c.q>c.s);if(over)return toast("Only "+over.s+" in stock for "+over.d);
+  const id=await mut(()=>{const id="RS-"+(++D.cfg.seq);D.reqs.unshift({id,by:U.email,name:U.name,dept:U.dept,section,cc,gl,remarks:$("#rem").value,status:"Submitted",at:new Date().toISOString(),lines:cart.map(c=>({m:c.m,d:c.d,u:c.u,p:c.p,q:c.q}))});return id});
+  cart=[];saveCart();toast(id+" submitted");go("requests")}
+
+/* ---------- requests ---------- */
+async function requestsV(){
+  const list=D.reqs.filter(r=>U.role=="requester"?r.by==U.email:true);
+  $("#main").innerHTML=`<div class="card"><div class="row"><h2 style="flex:1">Requisitions</h2><button class="b o" onclick="exportCsv()">Download CSV</button></div><div class="tbl"><table><tr><th>RS</th><th>By</th><th>Section / CC / GL</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr>
+  ${list.map(r=>{const t=r.lines.reduce((s,l)=>s+l.q*l.p,0),own=r.by==U.email,ro=U.role,a=[];
+   if(r.status=="Submitted"&&["approver","admin"].includes(ro)&&!own)a.push(`<button class="b g" onclick="act('${r.id}','Approved')">Approve</button><button class="b r" onclick="act('${r.id}','Rejected')">Reject</button>`);
+   if(r.status=="Approved"&&["storekeeper","admin"].includes(ro))a.push(`<button class="b" onclick="release('${r.id}')">Release</button>`);
+   if(r.status=="Released"&&own)a.push(`<button class="b g" onclick="act('${r.id}','Closed')">Confirm received</button>`);
+   if(r.status=="Submitted"&&own)a.push(`<button class="b o" onclick="act('${r.id}','Cancelled')">Cancel</button>`);
+   return`<tr><td>${r.id}<div class="muted">${new Date(r.at).toLocaleDateString()}</div></td><td>${esc(r.name)}<div class="muted">${esc(r.dept)}</div></td><td>${esc(r.section)}<div class="muted">${esc(r.cc)} · ${esc(r.gl)}</div></td><td>${r.lines.map(l=>`<div>${l.q} ${esc(l.u)} ${esc(l.d)}</div>`).join("")}</td><td>${money(t)}</td><td><span class="tag ${r.status}">${r.status}</span>${r.actor?`<div class="muted">${esc(r.actor)}</div>`:""}</td><td>${a.join(" ")}</td></tr>`}).join("")||"<tr><td>No requisitions yet.</td></tr>"}</table></div></div>`}
+async function act(id,status){await mut(()=>{const r=D.reqs.find(x=>x.id==id),ok={Approved:r.status=="Submitted"&&["approver","admin"].includes(U.role),Rejected:r.status=="Submitted"&&["approver","admin"].includes(U.role),Closed:r.status=="Released"&&r.by==U.email,Cancelled:r.status=="Submitted"&&r.by==U.email}[status];
+  if(!ok)return toast("Not allowed.");r.status=status;r.actor=U.name+" ("+status.toLowerCase()+")";r["t_"+status]=new Date().toISOString()});requestsV()}
+async function release(id){
+  try{await loadD();const r=D.reqs.find(x=>x.id==id);if(r.status!="Approved")throw Error("Request is not approved");await loadItems(true);
+    const by={};r.lines.forEach(l=>{if(IDX[l.m]==null)throw Error("Item not in stock list: "+l.m);(by[IDX[l.m]]=by[IDX[l.m]]||[]).push(l)});
+    await DB.runTransaction(async t=>{const ks=Object.keys(by),ds=await Promise.all(ks.map(k=>t.get(IC.doc("c"+k))));
+      const out=ds.map((d,i)=>{const a=JSON.parse(d.data().j);by[ks[i]].forEach(l=>{const row=a.find(x=>x[0]==l.m);if(!row||row[3]<l.q)throw Error("Not enough stock: "+l.m);row[3]-=l.q});return[ks[i],a]});
+      out.forEach(([k,a])=>t.update(IC.doc("c"+k),{j:JSON.stringify(a)}))});
+    await mut(()=>{const x=D.reqs.find(y=>y.id==id);x.status="Released";x.actor=U.name+" (released)";x.t_Released=new Date().toISOString()});ITEMS=[];toast("Released. Stock updated.")}
+  catch(e){toast(e.message)}requestsV()}
+function exportCsv(){const safe=v=>{v=String(v??"");return'"'+(/^[=+\-@]/.test(v)?"'"+v:v).replace(/"/g,'""')+'"'};
+  const rows=[["RS","Date","Requester","Section","CC","GL","Status","Material","Description","UoM","Qty","Unit price"]];
+  D.reqs.forEach(r=>r.lines.forEach(l=>rows.push([r.id,r.at.slice(0,10),r.name,r.section,r.cc,r.gl,r.status,l.m,l.d,l.u,l.q,l.p])));
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(safe).join(",")).join("\n")],{type:"text/csv"}));a.download="requisitions.csv";a.click()}
+
+/* ---------- stock ---------- */
+async function stockV(){await loadItems();$("#main").innerHTML=`<div class="card"><h2>Stock (${ITEMS.length} items)</h2><div class="row"><input id="sq" placeholder="Search stock…" onkeydown="if(event.key=='Enter')stockList()"><button class="b" onclick="stockList()">Search</button></div>
+  <p class="muted">Import a CSV with columns: material_no, description, uom, stock, unit_price. This replaces the current stock list.</p><input type="file" id="f" accept=".csv" onchange="importCsv(this.files[0])"><div id="sl" class="tbl"></div></div>`;stockList()}
+function stockList(){const t=($("#sq").value||"").toLowerCase(),l=ITEMS.filter(i=>!t||(i.d+" "+i.m).toLowerCase().includes(t)).slice(0,100);
+  $("#sl").innerHTML=`<table><tr><th>Material</th><th>Description</th><th>Stock</th><th>Price</th></tr>${l.map(i=>`<tr><td>${esc(i.m)}</td><td>${esc(i.d)}</td><td>${i.s} ${esc(i.u)}</td><td>${money(i.p)}</td></tr>`).join("")}</table>`}
+function parseCsv(t){const rows=[];let r=[],c="",q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==","){r.push(c);c=""}else if(ch=="\n"){r.push(c);rows.push(r);r=[];c=""}else if(ch!="\r")c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows}
+async function importCsv(file){if(!file)return;const rows=parseCsv(await file.text()),h=rows.shift().map(x=>x.trim().toLowerCase()),ix=k=>h.indexOf(k);if(ix("material_no")<0)return toast("Column material_no not found");
+  const seen={},all=[];rows.forEach(r=>{const m=(r[ix("material_no")]||"").trim();if(m&&!seen[m]){seen[m]=1;all.push([m,r[ix("description")]||"",r[ix("uom")]||"",+r[ix("stock")]||0,+r[ix("unit_price")]||0])}});
+  try{const old=await IC.get(),n=Math.ceil(all.length/400);for(let c=0;c<n;c++){await IC.doc("c"+c).set({j:JSON.stringify(all.slice(c*400,c*400+400))});toast("Importing "+Math.min((c+1)*400,all.length)+" / "+all.length)}
+    await Promise.all(old.docs.filter(d=>+d.id.slice(1)>=n).map(d=>d.ref.delete()));ITEMS=[];toast("Imported "+all.length+" items");stockV()}catch(e){toast(e.message)}}
+
+/* ---------- users (admin adds people, like E-Gate Pass) ---------- */
+function usersV(){$("#main").innerHTML=`<div class="card"><h2>Who can use the system</h2><div class="tbl"><table><tr><th>Name</th><th>Email / Dept</th><th>Role</th><th></th></tr>${D.users.map((u,i)=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}<div class="muted">${esc(u.dept)} · ${u.active?"Active":"Disabled"}${u.pw?"":" · no password yet"}</div></td>
+  <td><select onchange="setUser(${i},'role',this.value)">${["requester","approver","storekeeper","admin"].map(r=>`<option ${r==u.role?"selected":""}>${r}</option>`).join("")}</select></td>
+  <td>${u.email==U.email?"":`<button class="b o" onclick="tempPw(${i})">Set temp password</button> <button class="b ${u.active?"r":"g"}" onclick="setUser(${i},'active',${!u.active})">${u.active?"Disable":"Enable"}</button>`}</td></tr>`).join("")}</table></div></div>
+  <div class="card"><h2>Add a person</h2><div class="row"><input id="n_name" placeholder="Full name"><input id="n_em" type="email" placeholder="Company email"><input id="n_dept" placeholder="Department"></div>
+  <div class="row"><select id="n_role"><option>requester</option><option>approver</option><option>storekeeper</option><option>admin</option></select><input id="n_pw" placeholder="Temporary password"><button class="b" onclick="addUser()">Add person</button></div></div>
+  <div class="card"><h2>Company email domain</h2><div class="row"><input id="dom" value="${esc(D.cfg.domain)}"><button class="b" onclick="saveDom()">Save</button></div><p class="muted">Only emails ending in this domain can sign in, for example nestle.com.</p></div>`}
+async function setUser(i,k,v){await mut(()=>{D.users[i][k]=v});usersV()}
+async function tempPw(i){const p=prompt("Temporary password for "+D.users[i].name+" (8+ characters, letters and numbers):");if(!p)return;if(!pwOk(p))return toast(pwMsg);
+  const s=newSalt(),h=await hashPw(p,s);await mut(()=>{Object.assign(D.users[i],{pw:{s,h},must:true,fl:0,lu:0})});toast("Temporary password set. They choose a new one at sign-in.");usersV()}
+async function addUser(){const v=k=>$("#n_"+k).value.trim(),em=v("em").toLowerCase();if(!v("name")||!em.includes("@")||!v("dept"))return toast("Enter name, email and department.");
+  if(!em.endsWith("@"+D.cfg.domain))return toast("Use an email ending in @"+D.cfg.domain);if(!pwOk(v("pw")))return toast(pwMsg);const s=newSalt(),h=await hashPw(v("pw"),s);
+  const ok=await mut(()=>{if(D.users.some(u=>u.email==em))return false;D.users.push({email:em,name:v("name"),role:v("role"),dept:v("dept"),active:true,pw:{s,h},must:true});return true});toast(ok?"Person added.":"That email already has access.");usersV()}
+async function saveDom(){const d=$("#dom").value.trim().toLowerCase().replace(/^@/,"");if(!d.includes("."))return toast("Enter a domain like nestle.com");await mut(()=>{D.cfg.domain=d});toast("Saved. Existing emails must use the new domain to sign in.");usersV()}
+
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+(async()=>{try{await loadD();let e=null;try{e=sessionStorage.getItem("st_u")}catch(x){}const u=e&&D.users.find(x=>x.email==e&&x.active);if(u)finish(e);else loginView()}catch(e){$("#app").innerHTML='<div class="card" style="max-width:420px;margin:10vh auto"><h2>Cannot reach the database</h2><p>'+esc(e.message)+'</p></div>'}})();
+</script></body></html>
