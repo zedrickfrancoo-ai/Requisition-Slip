@@ -117,7 +117,7 @@ const pwOk=p=>p.length>=8&&/[A-Za-z]/.test(p)&&/\d/.test(p),pwMsg="Password need
 
 /* ---------- login (same flow as E-Gate Pass) ---------- */
 function loginView(){
-  $("#app").innerHTML=`<div class="lg"><div class="lg-b"><img src="logo.png" alt=""><h2>Every requisition, approved and on record.</h2><p>Request, approve, release and track store items in one place.</p></div>
+  $("#app").innerHTML=`<div class="lg"><div class="lg-b"><img src="logo.png" alt=""><h2>TECHNICAL STORE</h2><p>Requisition Slip</p></div>
   <div class="lg-f"><h2>Sign in</h2><label>Company email<input id="em" type="email" autocomplete="username" placeholder="name@${esc(D?D.cfg.domain:"company.com")}"></label>
   <label>Password<input id="pw" type="password" autocomplete="current-password"></label><div class="row" style="margin-top:12px"><button class="b" onclick="doLogin()">Sign in</button></div>
   <p class="muted" style="margin-top:8px;font-size:11px">Nestlé Tanauan</p><p class="muted" style="margin-top:20px">Use your company email and your personal password. First time? Sign in with your email and you will be asked to create a password.</p></div></div>`;
